@@ -11,6 +11,7 @@
     @include hover-focus {
       background-color: darken($color, 10%) !important;
     }
+    @include transition($btn-transition);
   }
 }
 
