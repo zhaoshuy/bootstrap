@@ -10,10 +10,9 @@
 
 'use strict'
 
+const fs = require('fs')
 const path = require('path')
-const sh = require('shelljs')
-
-sh.config.fatal = true
+const glob = require('glob')
 
 // Blame TC39... https://github.com/benjamingr/RegExp.escape/issues/37
 RegExp.quote = (string) => string.replace(/[-\\^$*+?.()|[\]{}]/g, '\\$&')
@@ -21,7 +20,7 @@ RegExp.quote = (string) => string.replace(/[-\\^$*+?.()|[\]{}]/g, '\\$&')
 let globalSuccess = true
 
 function findUnusedVars(dir) {
-  if (!sh.test('-d', dir)) {
+  if (!(fs.existsSync(dir) && fs.statSync(dir).isDirectory())) {
     console.log(`"${dir}": Not a valid directory!`)
     process.exit(1)
   }
@@ -31,22 +30,24 @@ function findUnusedVars(dir) {
   // A variable to handle success/failure message in this function
   let unusedVarsFound = false
 
+  // Array of all Sass files' content
+  const sassFiles = glob.sync(path.join(dir, '**/*.scss'))
   // String of all Sass files' content
-  const sassFiles = sh.cat(path.join(dir, '**/*.scss'))
-  // String of all Sass variables
-  const variables = sassFiles.grep(/^\$[a-zA-Z0-9_-][^:]*/g)
-                             .replace(/(\$[a-zA-Z0-9_-][^:]*).*/g, '$1')
-                             .trim()
+  let sassFilesString = ''
 
-  // Convert string into an array
-  const variablesArr = Array.from(variables.split('\n'))
+  sassFiles.forEach((file) => {
+    sassFilesString += fs.readFileSync(file, 'utf8')
+  })
 
-  console.log(`There's a total of ${variablesArr.length} variables.`)
+  // Array of all Sass variables
+  const variables = sassFilesString.match(/(^\$[a-zA-Z0-9_-]+[^:])/gm)
+
+  console.log(`There's a total of ${variables.length} variables.`)
 
   // Loop through each variable
-  variablesArr.forEach((variable) => {
+  variables.forEach((variable) => {
     const re = new RegExp(RegExp.quote(variable), 'g')
-    const count = (sassFiles.match(re) || []).length
+    const count = (sassFilesString.match(re) || []).length
 
     if (count === 1) {
       console.log(`Variable "${variable}" is only used once!`)
