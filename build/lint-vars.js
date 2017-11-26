@@ -14,9 +14,6 @@ const fs = require('fs')
 const path = require('path')
 const glob = require('glob')
 
-// Blame TC39... https://github.com/benjamingr/RegExp.escape/issues/37
-RegExp.quote = (string) => string.replace(/[-\\^$*+?.()|[\]{}]/g, '\\$&')
-
 let globalSuccess = true
 
 function findUnusedVars(dir) {
@@ -46,7 +43,7 @@ function findUnusedVars(dir) {
 
   // Loop through each variable
   variables.forEach((variable) => {
-    const re = new RegExp(RegExp.quote(variable), 'g')
+    const re = new RegExp(`'${variable}'`, 'g')
     const count = (sassFilesString.match(re) || []).length
 
     if (count === 1) {
